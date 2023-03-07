@@ -1,0 +1,194 @@
+%% info about the filee
+filename = '/Users/katerinanevsimalova/Desktop/BMKI/diplomka/2022_23/mereni_Krusek/220126/20220126.txt';
+opts = detectImportOptions(filename);
+delimiter = opts.Delimiter;
+
+%% text file into numeric matrix
+% Open the file for reading
+fid = fopen('/Users/katerinanevsimalova/Desktop/BMKI/diplomka/2022_23/mereni_Krusek/220126/20220126.txt', 'r');
+num_cols = 61; % number of columns
+formatSpec = repmat('%s', 1, num_cols); % define the format specifier 
+
+%% 01
+C = textscan(fid, formatSpec, 'Delimiter', '\t'); % read the data from the file into a cell array
+fclose(fid); % close the file
+m_0126_01 = str2double(horzcat(C{:})); % converting cell array to a numeric matrix
+file_name = '/Users/katerinanevsimalova/Desktop/BMKI/diplomka/2022_23/mereni_Krusek/220126/20220126.txt';
+num_cols = 61;
+fid = fopen(file_name, 'r'); % opening file for reading
+num_rows = numel(textread(file_name,'%1c%*[^\n]','delimiter','\t')); % counting number of rows
+M = []; % output matrix initializing
+
+% Loop over the file in chunks of 100,000 rows
+for i = 1:ceil(num_rows/100000)
+    % Read in the next chunk of data
+    C = textscan(fid, repmat('%s',1,num_cols), 100000, 'Delimiter', '\t');
+    % Convert the cell array to a numeric matrix
+    M_chunk = str2double(horzcat(C{:}));
+    % Append the chunk to the output matrix
+    M = [M M_chunk];
+end
+% Close the file
+fclose(fid);
+% Reshape the output matrix to have the correct number of columns
+M = reshape(M, num_cols, [])';
+
+%% ELECTRODES SPECIFICATION
+% Signal 1 (fs=25kHz)
+fs = 25000;
+m_0126_01 = m_0126_01(4:end,:);
+electrode_names = {'electrode 47', 'electrode 48', 'electrode 46', 'electrode 45', ...
+                   'electrode 38', 'electrode 37', 'electrode 28', 'electrode 36', ...
+                   'electrode 27', 'electrode 17', 'electrode 26', 'electrode 16', ...
+                   'electrode 35', 'electrode 25', 'electrode 15', 'electrode 14', ...
+                   'electrode 24', 'electrode 34', 'electrode 13', 'electrode 23', ...
+                   'electrode 12', 'electrode 22', 'electrode 33', 'electrode 21', ...
+                   'electrode 32', 'electrode 31', 'electrode 44', 'electrode 43', ...
+                   'electrode 41', 'electrode 42', 'electrode 52', 'electrode 51', ...
+                   'electrode 53', 'electrode 54', 'electrode 61', 'electrode 62', ...
+                   'electrode 71', 'electrode 63', 'electrode 72', 'electrode 82', ...
+                   'electrode 73', 'electrode 83', 'electrode 64', 'electrode 74', ...
+                   'electrode 84', 'electrode 85', 'electrode 75', 'electrode 65', ...
+                   'electrode 86', 'electrode 76', 'electrode 87', 'electrode 77', ...
+                   'electrode 66', 'electrode 78', 'electrode 67', 'electrode 42', ...
+                   'electrode 78', 'electrode 55', 'electrode 56', 'electrode 58', ...
+                   'electrode 57'};
+t = m_0126_01(:,1);
+volt_el47 = m_0126_01(:,2);
+volt_el48 = m_0126_01(:,3);
+volt_el46 = m_0126_01(:,4);
+volt_el45 = m_0126_01(:,5);
+volt_el38 = m_0126_01(:,6);
+volt_el37 = m_0126_01(:,7);
+volt_el28 = m_0126_01(:,8);
+volt_el36 = m_0126_01(:,9);
+volt_el27 = m_0126_01(:,10);
+volt_el17 = m_0126_01(:,11);
+volt_el26 = m_0126_01(:,12);
+volt_el16 = m_0126_01(:,13);
+volt_el35 = m_0126_01(:,14);
+volt_el25 = m_0126_01(:,15);
+volt_el15 = m_0126_01(:,16);
+volt_el14 = m_0126_01(:,17);
+volt_el24 = m_0126_01(:,18);
+volt_el34 = m_0126_01(:,19);
+volt_el13 = m_0126_01(:,20);
+volt_el23 = m_0126_01(:,21);
+volt_el12 = m_0126_01(:,22);
+volt_el22 = m_0126_01(:,23);
+volt_el33 = m_0126_01(:,24);
+volt_el21 = m_0126_01(:,25);
+volt_el32 = m_0126_01(:,26);
+volt_el31 = m_0126_01(:,27);
+volt_el44 = m_0126_01(:,28);
+volt_el43 = m_0126_01(:,29);
+volt_el41 = m_0126_01(:,30);
+volt_el42 = m_0126_01(:,31);
+volt_el52 = m_0126_01(:,32);
+volt_el51 = m_0126_01(:,33);
+volt_el53 = m_0126_01(:,34);
+volt_el54 = m_0126_01(:,35);
+volt_el61 = m_0126_01(:,36);
+volt_el62 = m_0126_01(:,37);
+volt_el71 = m_0126_01(:,38);
+volt_el63 = m_0126_01(:,39);
+volt_el72 = m_0126_01(:,40);
+volt_el82 = m_0126_01(:,41);
+volt_el73 = m_0126_01(:,42);
+volt_el83 = m_0126_01(:,43);
+volt_el64 = m_0126_01(:,44);
+volt_el74 = m_0126_01(:,45);
+volt_el84 = m_0126_01(:,46);
+volt_el85 = m_0126_01(:,47);
+volt_el75 = m_0126_01(:,48);
+volt_el65 = m_0126_01(:,49);
+volt_el86 = m_0126_01(:,50);
+volt_el76 = m_0126_01(:,51);
+volt_el87 = m_0126_01(:,52);
+volt_el77 = m_0126_01(:,53);
+volt_el66 = m_0126_01(:,54);
+volt_el78 = m_0126_01(:,55);
+volt_el67 = m_0126_01(:,56);
+volt_el68 = m_0126_01(:,57);
+volt_el55 = m_0126_01(:,58);
+volt_el56 = m_0126_01(:,59);
+volt_el58 = m_0126_01(:,60);
+volt_el57 = m_0126_01(:,61);
+
+%% SIGNAL FILTER, PEAK DETECTION
+% define filter parameters
+signal = m_0126_01;
+fs = 25000; % sampling frequency
+order = 3; % filter order
+% passband frequencies
+cut_f1 = 300;
+cut_f2 = 3000;
+electrodes_num = 61;
+
+% Loop over each electrode
+for electrode = 2:size(signal, 2) % assuming time is in the first column
+    % Get voltage measurements for this electrode
+    voltage = signal(:, electrode);
+    
+    % filter design
+    filter = designfilt('bandpassfir', 'FilterOrder', order, 'CutoffFrequency1',cut_f1, ...
+                        'CutoffFrequency2', cut_f2, 'SampleRate', fs);
+    % apply filter on signal
+    filtered_signal = filtfilt(filter, voltage);
+
+    % threshold set
+%     abs_voltage = abs(voltage);
+%     noise_var = median(abs_voltage/0.6745); % ambient noise variance estimate
+%     threshold = 2 * noise_var;
+    threshold = 3 * std(voltage);
+
+    % apply threshold
+    thresholded = abs(filtered_signal) - threshold;
+    thresholded(thresholded < 0) = 0;
+    
+
+    % spike detection
+    [spike_value, spike_indices] = findpeaks(thresholded, 'MinPeakHeight', threshold, 'MinPeakDistance', 10);
+
+    % refine spike detection
+    refined_spikes = refine_spikes(spike_indices, filtered_signal, threshold, t);
+
+     % spike data store
+    spike_data{electrode} = [spike_indices, t(spike_indices), filtered_signal(spike_indices)]
+
+    % spikes plot
+    subplot(ceil(sqrt(electrodes_num-1)),ceil(sqrt(electrodes_num-1)), electrode-1)
+    plot(t, filtered_signal)
+    hold on
+    
+    if ~isempty(refined_spikes)
+        scatter(refined_spikes(:,1), refined_spikes(:,2), 'r', 'filled')
+    end
+    
+    xlabel('Time (ms)')
+    ylabel('Voltage (uV)')
+    title(electrode_names{electrode})
+ 
+end
+
+% MFR 
+time_interval = 10;
+
+
+% Define a function to refine the spikes
+function refined_spikes = refine_spikes(spike_indices, filtered_signal, threshold, time)
+    refined_spikes = [];
+    for i = 1:length(spike_indices)
+        spike_start = spike_indices(i);
+        spike_end = spike_start + find(filtered_signal(spike_start+1:end) < threshold, 1);
+        if isempty(spike_end)
+            spike_end = length(filtered_signal);
+        else
+            spike_end = spike_start + spike_end;
+        end
+        if filtered_signal(spike_start) > threshold && (spike_end - spike_start) >= 10
+            refined_spikes(end+1,:) = [time(spike_start), filtered_signal(spike_start)];
+        end
+    end
+end
+% burst detection (ISI, min_spikes)
