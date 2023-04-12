@@ -1,0 +1,41 @@
+%% file info
+filename = '/Users/katerinanevsimalova/Desktop/BMKI/diplomka/2022_23/matlab/20230202_02.txt';
+opts = detectImportOptions(filename);
+delimiter = opts.Delimiter;
+
+%% text file into numeric matrix
+% filename = '/Users/katerinanevsimalova/Desktop/BMKI/diplomka/2022_23/mereni_Krusek/220126/20220126.txt';
+% num_cols = 61; 
+% %num_rows = numel(textread(file_name,'%1c%*[^\n]','delimiter','\t'));
+% fid = fopen(filename, 'r');
+% formatSpec = repmat('%s', 1, num_cols); % define the format specifier 
+% C1 = textscan(fid, formatSpec, 500000, 'Delimiter', '\t'); 
+% C2 = textscan(fid, formatSpec, 500000, 'Delimiter', '\t', 'HeaderLines', 500000); % start reading from line 500001
+% C3 = textscan(fid, formatSpec, 500000, 'Delimiter', '\t', 'HeaderLines', 1000000);
+% C4 = textscan(fid, formatSpec, 500000, 'Delimiter', '\t', 'HeaderLines', 1500000);
+% C5 = textscan(fid, formatSpec, 500000, 'Delimiter', '\t', 'HeaderLines', 2000000);
+% C6 = textscan(fid, formatSpec, 500000, 'Delimiter', '\t', 'HeaderLines', 2500000);
+% C7 = textscan(fid, formatSpec, 500000, 'Delimiter', '\t', 'HeaderLines', 3000000);
+% fclose(fid); 
+%     
+% % combine the two sets of data into one array
+% signal = str2double([horzcat(C1{:}); horzcat(C2{:}); horzcat(C3{:}); horzcat(C4{:}); ...
+%                          horzcat(C5{:}); horzcat(C6{:}); horzcat(C7{:})]);
+% % m_0126_01 = str2double(horzcat(C{:}));
+filename = '/Users/katerinanevsimalova/Desktop/BMKI/diplomka/2022_23/matlab/20230202_03';
+num_cols = 61; 
+fid = fopen(filename, 'r');
+formatSpec = repmat('%s', 1, num_cols); % define the format specifier 
+C = textscan(fid, formatSpec, 'EndOfLine', '\r\n', 'Delimiter', '\t', 'CollectOutput', true);
+fclose(fid); 
+    
+% convert the cell array to a numeric matrix
+signal03 = str2double(C{1});
+
+%% Sub-signals merge
+matrix1 = signal;
+matrix2 = signal02;
+%matrix3 = signal03;
+%matrix4 = signal04;
+signal_final1 = vertcat(matrix1,matrix2);
+%signal_final2 = vertcat(matrix3,matrix4);
