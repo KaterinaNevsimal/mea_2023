@@ -1,0 +1,71 @@
+%% Filter, spike detection - ONE ELECTRODE
+order = 2; % filter order
+% cutoff frequencies
+cut_f1 = 150;
+cut_f2 = 2500;
+
+electrode = 5;
+voltage = signal(:, electrode);
+n_samples = length(voltage);
+window_size = fs/10; % 1-second window size (assuming fs is the sampling rate)
+
+% Apply filter
+filter = designfilt('bandpassfir', 'FilterOrder', order, 'CutoffFrequency1',cut_f1, ...
+                    'CutoffFrequency2', cut_f2, 'SampleRate', fs);
+filtered_signal = filtfilt(filter, voltage);
+
+% Spike detection
+spike_indices_all = [];
+for i = 1:window_size:n_samples-window_size+1
+    % Extract current window
+    current_window = filtered_signal(i:i+window_size-1);
+
+    % Estimate noise standard deviation
+    abs_voltage = abs(current_window);
+    noise_std = median(abs_voltage/0.6745); % ambient noise standard deviation estimate
+    
+    % Apply threshold for current window
+    threshold = 2 * noise_std;
+    thresholded = abs(current_window) - threshold;
+    thresholded(thresholded < 0) = 0;
+
+    % Detect spikes for current window
+    [spike_value, spike_indices] = findpeaks(thresholded, 'MinPeakHeight', threshold);
+    spike_indices = spike_indices + i - 1; % convert indices to global indices
+    spike_indices_all = [spike_indices_all; spike_indices];
+end
+
+% Refine spike detection
+refined_spikes = refine_spikes(spike_indices_all, filtered_signal, threshold, t);
+
+% Plot spikes for electrode 2 only
+% Calculate the duration of the signal in seconds
+
+duration = length(signal) / fs;
+time_sec = linspace(0, duration, length(signal));
+t = 0:1/fs:(length(signal)-1)/fs; % time vector
+figure
+plot(time_sec, filtered_signal)
+hold on
+scatter(refined_spikes(:,1), refined_spikes(:,2), 'r', 'filled')
+xlabel('Time (s)')
+ylabel('Voltage (uV)')
+xlim([0 duration]);
+title(electrode_names{electrode})
+
+% Define a function to refine the spikes
+function refined_spikes = refine_spikes(spike_indices, filtered_signal, threshold, time)
+    refined_spikes = [];
+    for i = 1:length(spike_indices)
+        spike_start = spike_indices(i);
+        spike_end = spike_start + find(filtered_signal(spike_start+1:end) < threshold, 1);
+        if isempty(spike_end)
+            spike_end = length(filtered_signal);
+        else
+            spike_end = spike_start + spike_end;
+        end
+        if filtered_signal(spike_start) > threshold && (spike_end - spike_start) >= 10
+            refined_spikes(end+1,:) = [time(spike_start), filtered_signal(spike_start)];
+        end
+    end
+end
