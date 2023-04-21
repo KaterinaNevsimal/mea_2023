@@ -1,0 +1,100 @@
+%% ELECTRODES SPECIFICATION
+% Signal 1 (fs=25kHz)
+fs = 25000; % sampling frequency 25kHz+
+signal = signal_contNB(4:end,:);   % just for first subsignal with the header
+signal = signal(1:2:end,:); % select every odd row
+signal(1,:) = [];
+% select every odd row
+% electrode_names = {'electrode 47', 'electrode 48', 'electrode 46', 'electrode 45', ...
+%                    'electrode 38', 'electrode 37', 'electrode 28', 'electrode 36', ...
+%                    'electrode 27', 'electrode 17', 'electrode 26', 'electrode 16', ...
+%                    'electrode 35', 'electrode 25', 'electrode 15', 'electrode 14', ...
+%                    'electrode 24', 'electrode 34', 'electrode 13', 'electrode 23', ...
+%                    'electrode 12', 'electrode 22', 'electrode 33', 'electrode 21', ...
+%                    'electrode 32', 'electrode 31', 'electrode 44', 'electrode 43', ...
+%                    'electrode 41', 'electrode 42', 'electrode 52', 'electrode 51', ...
+%                    'electrode 53', 'electrode 54', 'electrode 61', 'electrode 62', ...
+%                    'electrode 71', 'electrode 63', 'electrode 72', 'electrode 82', ...
+%                    'electrode 73', 'electrode 83', 'electrode 64', 'electrode 74', ...
+%                    'electrode 84', 'electrode 85', 'electrode 75', 'electrode 65', ...
+%                    'electrode 86', 'electrode 76', 'electrode 87', 'electrode 77', ...
+%                    'electrode 66', 'electrode 78', 'electrode 67', 'electrode 42', ...
+%                    'electrode 78', 'electrode 55', 'electrode 56', 'electrode 58', ...
+%                    'electrode 57'};
+
+electrode_names = {'electrode 36', 'electrode 47', 'electrode 55', 'electrode 86', ...
+                   'electrode 71', 'electrode 82', 'electrode 66', 'electrode 32', ...
+                   'electrode 44', 'electrode 31', 'electrode 12'};
+t = signal(:,1);
+volt_el36 = signal(:,2);
+volt_el47 = signal(:,3);
+volt_el55 = signal(:,4);
+volt_el86 = signal(:,5);
+
+volt_el71 = signal(:,6);
+volt_el82 = signal(:,7);
+volt_el66 = signal(:,8);
+volt_el32 = signal(:,9);
+volt_el44 = signal(:,10);
+volt_el31 = signal(:,11);
+volt_el12 = signal(:,12);
+% volt_el47 = signal(:,2);
+% volt_el48 = signal(:,3);
+% volt_el46 = signal(:,4);
+% volt_el45 = signal(:,5);
+% volt_el38 = signal(:,6);
+% volt_el37 = signal(:,7);
+% volt_el28 = signal(:,8);
+% volt_el36 = signal(:,9);
+% volt_el27 = signal(:,10);
+% volt_el17 = signal(:,11);
+% volt_el26 = signal(:,12);
+% volt_el16 = signal(:,13);
+% volt_el35 = signal(:,14);
+% volt_el25 = signal(:,15);
+% volt_el15 = signal(:,16);
+% volt_el14 = signal(:,17);
+% volt_el24 = signal(:,18);
+% volt_el34 = signal(:,19);
+% volt_el13 = signal(:,20);
+% volt_el23 = signal(:,21);
+% volt_el12 = signal(:,22);
+% volt_el22 = signal(:,23);
+% volt_el33 = signal(:,24);
+% volt_el21 = signal(:,25);
+% volt_el32 = signal(:,26);
+% volt_el31 = signal(:,27);
+% volt_el44 = signal(:,28);
+% volt_el43 = signal(:,29);
+% volt_el41 = signal(:,30);
+% volt_el42 = signal(:,31);
+% volt_el52 = signal(:,32);
+% volt_el51 = signal(:,33);
+% volt_el53 = signal(:,34);
+% volt_el54 = signal(:,35);
+% volt_el61 = signal(:,36);
+% volt_el62 = signal(:,37);
+% volt_el71 = signal(:,38);
+% volt_el63 = signal(:,39);
+% volt_el72 = signal(:,40);
+% volt_el82 = signal(:,41);
+% volt_el73 = signal(:,42);
+% volt_el83 = signal(:,43);
+% volt_el64 = signal(:,44);
+% volt_el74 = signal(:,45);
+% volt_el84 = signal(:,46);
+% volt_el85 = signal(:,47);
+% volt_el75 = signal(:,48);
+% volt_el65 = signal(:,49);
+% volt_el86 = signal(:,50);
+% volt_el76 = signal(:,51);
+% volt_el87 = signal(:,52);
+% volt_el77 = signal(:,53);
+% volt_el66 = signal(:,54);
+% volt_el78 = signal(:,55);
+% volt_el67 = signal(:,56);
+% volt_el68 = signal(:,57);
+% volt_el55 = signal(:,58);
+% volt_el56 = signal(:,59);
+% volt_el58 = signal(:,60);
+% volt_el57 = signal(:,61);
