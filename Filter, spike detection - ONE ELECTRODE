@@ -1,71 +1,163 @@
-%% Filter, spike detection - ONE ELECTRODE
-order = 2; % filter order
-% cutoff frequencies
-cut_f1 = 150;
-cut_f2 = 2500;
+%%  CHOOSING SIGNAL PART
+electrode = 2;
+signal = signal_contNB(:, 1:electrode);
+time = signal(:,1);
+voltage = signal(:,2);
 
-electrode = 5;
-voltage = signal(:, electrode);
-n_samples = length(voltage);
-window_size = fs/10; % 1-second window size (assuming fs is the sampling rate)
+% nalezení indexů řádků, kde čas je mezi 310 a 320 sekundami
+row_indices = find(time >= 310000 & time <= 320000);
+% 
+% % výběr řádků z původní matice pomocí nalezených indexů
+small_signal = signal(row_indices,:);
+time = small_signal(:,1);
+voltage = small_signal(:,2);
 
-% Apply filter
-filter = designfilt('bandpassfir', 'FilterOrder', order, 'CutoffFrequency1',cut_f1, ...
-                    'CutoffFrequency2', cut_f2, 'SampleRate', fs);
-filtered_signal = filtfilt(filter, voltage);
+%% PLOT
+plot(time/1000,voltage);
+xlabel('time (s)');
+ylabel('voltage (mV)');
+title("Electrode 47 (raw)");
 
-% Spike detection
-spike_indices_all = [];
-for i = 1:window_size:n_samples-window_size+1
-    % Extract current window
-    current_window = filtered_signal(i:i+window_size-1);
+%% FILTER
+fs = 25000;
+low_f = 300; % Dolní frekvence 
+high_f = 6000; % Horní frekvence 
+order = 4; % Řád filtru
+[b,a] = butter(order, [low_f/(fs/2), high_f/(fs/2)], 'bandpass');
+% aplikace filtru na signál
+filtered_signal = filtfilt(b,a,voltage);
+% plot
+plot(time/1000,filtered_signal);
+xlabel('time (s)');
+ylabel('voltage (mV)');
+title("Electrode 47 (filtered)");
 
-    % Estimate noise standard deviation
-    abs_voltage = abs(current_window);
-    noise_std = median(abs_voltage/0.6745); % ambient noise standard deviation estimate
-    
-    % Apply threshold for current window
-    threshold = 2 * noise_std;
-    thresholded = abs(current_window) - threshold;
-    thresholded(thresholded < 0) = 0;
+%% THRESHOLD
+% Nastavení parametrů
+window_size = 10e-3; % Velikost posuvného okna (v sekundách)
+noise_estimation_window = 100; % Délka okna pro odhad střední hodnoty šumu (100 vzorků)
 
-    % Detect spikes for current window
-    [spike_value, spike_indices] = findpeaks(thresholded, 'MinPeakHeight', threshold);
-    spike_indices = spike_indices + i - 1; % convert indices to global indices
-    spike_indices_all = [spike_indices_all; spike_indices];
+% Inicializace proměnných
+samples_per_window = round(window_size*fs);
+samples_per_noise_estimation_window = round(noise_estimation_window*fs);
+spike_times = zeros(size(filtered_signal));
+
+% Cyklus pro posuvné okno
+for i = 1:samples_per_window:length(filtered_signal)-samples_per_window
+    % Výpočet prahu na základě střední hodnoty šumu
+    if i+samples_per_noise_estimation_window-1 > length(filtered_signal)
+        noise_estimate = mean(abs(filtered_signal(i:end)));
+    else
+        noise_estimate = mean(abs(filtered_signal(i:i+samples_per_noise_estimation_window-1)));
+    end
+
+    % threshold 2xSTD
+    threshold_pos = 2*noise_estimate;
+    threshold_neg = -2*noise_estimate;
+
+    %threshold 3xSTD
+    threshold_pos3 = 3*noise_estimate;
+    threshold_neg3 = -3*noise_estimate;
+
+    %threshold 4xSTD
+    threshold_pos4 = 4*noise_estimate;
+    threshold_neg4 = -4*noise_estimate;
+
+    %threshold 5xSTD
+    threshold_pos5 = 5*noise_estimate;
+    threshold_neg5 = -5*noise_estimate;
+
 end
 
-% Refine spike detection
-refined_spikes = refine_spikes(spike_indices_all, filtered_signal, threshold, t);
-
-% Plot spikes for electrode 2 only
-% Calculate the duration of the signal in seconds
-
-duration = length(signal) / fs;
-time_sec = linspace(0, duration, length(signal));
-t = 0:1/fs:(length(signal)-1)/fs; % time vector
+% Vykreslení signálu, detekovaných prahových úrovní
 figure
-plot(time_sec, filtered_signal)
+plot(time, filtered_signal)
 hold on
-scatter(refined_spikes(:,1), refined_spikes(:,2), 'r', 'filled')
-xlabel('Time (s)')
-ylabel('Voltage (uV)')
-xlim([0 duration]);
-title(electrode_names{electrode})
 
-% Define a function to refine the spikes
-function refined_spikes = refine_spikes(spike_indices, filtered_signal, threshold, time)
-    refined_spikes = [];
-    for i = 1:length(spike_indices)
-        spike_start = spike_indices(i);
-        spike_end = spike_start + find(filtered_signal(spike_start+1:end) < threshold, 1);
-        if isempty(spike_end)
-            spike_end = length(filtered_signal);
-        else
-            spike_end = spike_start + spike_end;
-        end
-        if filtered_signal(spike_start) > threshold && (spike_end - spike_start) >= 10
-            refined_spikes(end+1,:) = [time(spike_start), filtered_signal(spike_start)];
+% Vytvoření vektoru s hodnotou prahové úrovně pro obě polarity
+    % 2
+threshold_line_pos = ones(size(time))*threshold_pos;
+threshold_line_neg = ones(size(time))*threshold_neg;
+    % 3
+threshold_line_pos3 = ones(size(time))*threshold_pos3;
+threshold_line_neg3 = ones(size(time))*threshold_neg3;
+    % 4
+threshold_line_pos4 = ones(size(time))*threshold_pos4;
+threshold_line_neg4 = ones(size(time))*threshold_neg4;
+    % 5
+threshold_line_pos5 = ones(size(time))*threshold_pos5;
+threshold_line_neg5 = ones(size(time))*threshold_neg5;
+
+% Vykreslení prahových úrovní (horizontálně)
+plot(time, threshold_line_pos, 'r-', 'LineWidth', 1, Color=[0 1 1]);
+plot(time, threshold_line_pos3, 'r-', 'LineWidth', 1, Color=[1 0 1]);
+plot(time, threshold_line_pos4, 'r-', 'LineWidth', 1, Color=[0 1 0]);
+plot(time, threshold_line_pos5, 'r-', 'LineWidth', 1);
+
+plot(time, threshold_line_neg, 'r-', 'LineWidth', 1, Color=[0 1 1]);
+plot(time, threshold_line_neg3, 'r-', 'LineWidth', 1, Color=[1 0 1]);
+plot(time, threshold_line_neg4, 'r-', 'LineWidth', 1, Color=[0 1 0]);
+plot(time, threshold_line_neg5, 'r-', 'LineWidth', 1);
+
+xlabel('time (s)');
+ylabel('voltage (mV)');
+title("Electrode 47 (threshold)");
+legend('filtered signal','2*STD','3*STD','4*STD','5*STD' ,...
+        'Location','southwest', FontSize=12);
+legend('boxoff');
+
+%% SPIKE DETECTTION
+% Nastavení refrakterní doby na 1 ms
+refractory = 0.5e-3;
+
+% Inicializace proměnných
+last_spike_index = 0;
+
+% Cyklus pro posuvné okno
+for i = 1:samples_per_window:length(filtered_signal)-samples_per_window
+    % Výpočet prahu na základě střední hodnoty šumu
+    if i+samples_per_noise_estimation_window-1 > length(filtered_signal)
+        noise_estimate = mean(abs(filtered_signal(i:end)));
+    else
+        noise_estimate = mean(abs(filtered_signal(i:i+samples_per_noise_estimation_window-1)));
+    end
+
+    % threshold
+    threshold = -4*noise_estimate;
+
+    % Vyhledání spiků v okně
+    window = filtered_signal(i:i+samples_per_window-1);
+    below_threshold = window < threshold;
+    spike_indices = find(below_threshold);
+
+    % Pokud byl detekován spike, ověřte, zda uplynula refrakterní doba
+    if ~isempty(spike_indices)
+        if i + spike_indices(1) - 1 > last_spike_index + refractory*fs
+            spike_times(i + spike_indices(1) - 1) = -1;
+            last_spike_index = i + spike_indices(1) - 1;
         end
     end
 end
+
+% Najít pozice špiček
+[~, spike_peaks] = findpeaks(-filtered_signal, 'MinPeakHeight', max(-filtered_signal)/2);
+
+% Vykreslení signálu, detekovaných prahových úrovní a detekovaných spikeů
+figure
+plot(time, filtered_signal, Color=[0 0 1])
+hold on
+
+% Vytvoření vektoru s hodnotou prahové úrovně
+threshold_line = ones(size(time))*threshold;
+
+% Vykreslení prahové úrovně jako horizontální čáry
+plot(time, threshold_line, 'r-', 'LineWidth', 1, Color=[0 1 0]);
+
+% Vykreslení detekovaných spiků
+spike_indices = find(spike_times == -1);
+plot(time(spike_indices), filtered_signal(spike_indices), 'ro');
+
+xlabel('time (s)');
+ylabel('voltage (mV)');
+title("Electrode 47 (spikes)");
+
