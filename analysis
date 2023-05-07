@@ -1,0 +1,231 @@
+
+%%  CHOOSING SIGNAL PART
+electrode = 2;
+signal = signal_contNB(:, 1:electrode);
+time = signal(:,1);
+voltage = signal(:,2);
+
+% vytvoreni maleho kusu signalu
+% indexy radkku s casem 310-320s
+%row_indices = find(time >= 310000 & time <= 320000);
+
+% vytvoreni maleho kusu signalu
+%small_signal = signal(row_indices,:);
+%time = small_signal(1:100000,1);
+%voltage = small_signal(1:100000,2);
+
+%% PLOT
+plot(time/1000,voltage);
+xlabel('time (s)');
+ylabel('voltage (mV)');
+title("Electrode 47 (raw)");
+
+%% FILTER
+fs = 25000;
+low_f = 300; % dolni f
+high_f = 6000; % horni f
+order = 2; % rad filtru
+[b,a] = butter(order, [low_f/(fs/2), high_f/(fs/2)], 'bandpass'); % filtr
+
+% filtrovani signalu
+filtered_signal = filtfilt(b,a,voltage);
+
+% plot
+plot(time/1000,filtered_signal);
+xlabel('time (s)');
+ylabel('voltage (mV)');
+title("Electrode 47 (filtered)");
+
+%% PLOT (filtered and nonfiltered)
+plot(time/1000,voltage);
+hold on
+plot(time/1000, filtered_signal)
+xlabel('time (s)');
+ylabel('voltage (mV)');
+title("Electrode 47 (filtered and raw)");
+
+%% THRESHOLD (window)
+% plot
+figure(1);
+hold on
+plot(time/1000, filtered_signal, 'k');
+
+% Vertical lines and horizontal lines
+start_sample = 1;  % starting sample
+end_sample = length(time);  % ending sample
+step = 250;  % step in samples
+
+for i = start_sample:step:end_sample
+    line_x = time(i)/1000;  % convert samples to time in seconds
+    line([line_x, line_x], ylim, 'Color', 'b');  % add a vertical line
+    
+    signal_diff = diff(filtered_signal);
+
+    % Calculate mean of absolute values for the current segment
+    segment_start = i;
+    segment_end = min(i + step - 1, end_sample);
+    segment = filtered_signal(segment_start:segment_end);
+    mean_abs_value = -4*mean(abs(segment));
+    
+    % Add a horizontal line corresponding to the mean of absolute values
+    hline_start_x = time(segment_start)/1000;
+    hline_end_x = time(segment_end)/1000;
+    line([hline_start_x, hline_end_x], [mean_abs_value, mean_abs_value], ...
+        'Color', 'b', 'LineWidth',2 );
+end
+
+hold off
+xlabel('time (s)');
+ylabel('voltage (mV)');
+title("Elektroda s okénky");
+xlim([310.05, 310.25])
+
+%% THRESHOLD
+sample_start = 1;
+sample_end = length(time);
+step = 1250; % velikost posuvneho okna
+
+% posuvne okno for cyklus
+for i = sample_start:step:sample_end
+    % vypocitani thresholdu (stredni hodnota sumu)
+    segment_start = i;
+    segment_end = min(i + step - 1, sample_end);
+    segment = filtered_signal(segment_start:segment_end);
+    noise_estimate = mean(abs(diff(segment)));
+
+    % threshold 2xSTD
+    threshold_pos = 2*noise_estimate;
+    threshold_neg = -2*noise_estimate;
+
+    %threshold 3xSTD
+    threshold_pos3 = 3*noise_estimate;
+    threshold_neg3 = -3*noise_estimate;
+
+    %threshold 4xSTD
+    threshold_pos4 = 4*noise_estimate;
+    threshold_neg4 = -4*noise_estimate;
+
+    %threshold 5xSTD
+    threshold_pos5 = 5*noise_estimate;
+    threshold_neg5 = -5*noise_estimate;
+
+    %threshold 6xSTD
+    threshold_pos6 = 6*noise_estimate;
+    threshold_neg6 = -6*noise_estimate;
+
+    %threshold 7xSTD
+    threshold_pos7 = 7*noise_estimate;
+    threshold_neg7 = -7*noise_estimate;
+
+end
+
+% plot
+figure
+plot(time, filtered_signal)
+hold on
+
+% ulozeni thresholdu 
+    % 2
+threshold_line_pos = ones(size(time))*threshold_pos;
+threshold_line_neg = ones(size(time))*threshold_neg;
+    % 3
+threshold_line_pos3 = ones(size(time))*threshold_pos3;
+threshold_line_neg3 = ones(size(time))*threshold_neg3;
+    % 4
+threshold_line_pos4 = ones(size(time))*threshold_pos4;
+threshold_line_neg4 = ones(size(time))*threshold_neg4;
+    % 5
+threshold_line_pos5 = ones(size(time))*threshold_pos5;
+threshold_line_neg5 = ones(size(time))*threshold_neg5;
+    % 6
+threshold_line_pos6 = ones(size(time))*threshold_pos6;
+threshold_line_neg6 = ones(size(time))*threshold_neg6;
+    % 7
+threshold_line_pos7 = ones(size(time))*threshold_pos7;
+threshold_line_neg7 = ones(size(time))*threshold_neg7;
+
+
+% plot thresholdu (horizont)
+plot(time, threshold_line_pos, 'r-', 'LineWidth', 1, Color=[0 1 1]);
+plot(time, threshold_line_pos3, 'r-', 'LineWidth', 1, Color=[1 0 1]);
+plot(time, threshold_line_pos4, 'r-', 'LineWidth', 1, Color=[0 1 0]);
+plot(time, threshold_line_pos5, 'r-', 'LineWidth', 1);
+plot(time, threshold_line_pos6, 'r-', 'LineWidth', 1);
+plot(time, threshold_line_pos7, 'r-', 'LineWidth', 1);
+
+plot(time, threshold_line_neg, 'r-', 'LineWidth', 1, Color=[0 1 1]);
+plot(time, threshold_line_neg3, 'r-', 'LineWidth', 1, Color=[1 0 1]);
+plot(time, threshold_line_neg4, 'r-', 'LineWidth', 1, Color=[0 1 0]);
+plot(time, threshold_line_neg5, 'r-', 'LineWidth', 1);
+plot(time, threshold_line_neg6, 'r-', 'LineWidth', 1);
+plot(time, threshold_line_neg7, 'r-', 'LineWidth', 1);
+
+xlabel('time (s)');
+ylabel('voltage (mV)');
+title("Electrode 47 (threshold)");
+legend('filtered signal','2*STD','3*STD','4*STD','5*STD' ,'6*STD',...
+        'Location','northwest', FontSize=12);
+legend('boxoff');
+
+%% SPIKE DETECTION
+% Nastavení thresholdu a refrakční doby
+threshold = -10*noise_estimate;
+threshold_line = ones(size(time))*threshold;
+refractory_period = 1e-3; % 1 ms refractory period
+
+% Najdeme vrcholy akčního potenciálu
+[peaks,locations] = findpeaks(-filtered_signal, 'MinPeakHeight', -threshold, ...
+    'MinPeakDistance', round(refractory_period*fs));
+
+% Uložíme indexy nalezených akčních potenciálů
+spike_indices = locations(peaks ~= 0);
+
+% Plot filtered signal and detected spikes
+figure;
+plot(time, filtered_signal);
+hold on;
+plot(time, threshold_line, 'r-', 'LineWidth', 1);
+plot(time(spike_indices), filtered_signal(spike_indices), 'ro');
+xlabel('Time (s)');
+ylabel('Voltage (mV)');
+title('Filtered Signal with Detected Spikes');
+legend('Filtered Signal', 'Threshold', 'Spikes', 'Location', 'northwest');
+
+%% Burst detection
+min_spikes_per_burst = 10;
+max_isi = 0.1; % 100ms
+min_isi_samples = round(max_isi * fs); % min počet vzorků v burstu
+min_burst_duration = 0.03; % 30ms
+
+spike_peaks = peaks;
+spike_locs = locations;
+
+% Detekce burstů
+burst_start_locs = spike_locs([true; diff(spike_locs) > min_isi_samples]); % indexy spiků, které začínají nový burst
+burst_end_locs = spike_locs([diff(spike_locs) > min_isi_samples; true]); % indexy spiků, které končí burst
+
+% Vyfiltrovaní burstů, které splňují kritéria
+burst_spikes = [];
+for i = 1:length(burst_start_locs)
+    burst_spike_locs = spike_locs(spike_locs >= burst_start_locs(i) & spike_locs <= burst_end_locs(i));
+    burst_duration = (burst_end_locs(i) - burst_start_locs(i))/fs;
+    if length(burst_spike_locs) >= min_spikes_per_burst
+        if burst_duration >= min_burst_duration
+        burst_spikes = [burst_spikes; burst_spike_locs];
+        end
+    end
+end
+
+% Vykreslení výsledků
+figure;
+plot(time, filtered_signal);
+hold on;
+plot(time(burst_spikes), filtered_signal(burst_spikes), 'ro');
+plot(time(burst_start_locs), filtered_signal(burst_start_locs), 'y.', 'MarkerSize', 20);
+plot(time(burst_end_locs), filtered_signal(burst_end_locs), 'g.', 'MarkerSize', 20);
+xlabel('Time (s)');
+ylabel('Voltage (mV)');
+title('Bursts detection');
+legend('Filtered signal', 'Spikes in burst', 'Burst start', 'Burst end',...
+    'Location','northwest', FontSize=10);
+legend('boxoff');
