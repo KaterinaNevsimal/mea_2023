@@ -1,0 +1,248 @@
+
+%%  CHOOSING SIGNAL PART
+fs = 25000;
+signal = signal_MDMA3_01;
+time = signal(:,1);
+voltages = signal(:,2:end);
+voltages(isnan(voltages)) = 0;
+% 10 min
+row_indices = find(time >= 1 & time <= 60*10*fs);
+
+signal = signal(row_indices,:);
+time = signal(:,1);
+voltages = signal(:,2:end);
+
+
+%% PLOT
+index_el_start = 1;
+index_el_end = 12;
+figure("Name","RAW");
+for i = index_el_start:index_el_end
+    subplot(6,2,i)
+    plot(time/1000, voltages(:,i))
+    xlabel('Time (s)', 'FontSize', 10);
+    ylabel('Voltage (mV)', 'FontSize', 10);
+    set(gca,'FontSize',10);
+    xlim([0 600]);
+end
+
+%% FILTER
+fs = 25000;
+low_f = 300; % dolni f
+high_f = 6000; % horni f
+order = 2; % rad filtru
+[b, a] = butter(order, [low_f/(fs/2), high_f/(fs/2)], 'bandpass'); % filtr
+
+filtered_signal = zeros(size(voltages));
+for i = index_el_start:index_el_end
+    % filtrovani signalu
+    filtered_signal(:, i) = filtfilt(b, a, voltages(:, i));
+end
+%% Plot filtered signals
+figure;
+for i = index_el_start:index_el_end
+    subplot(6,2,i);
+    plot(time/1000,voltages(:,i))
+    hold on
+    plot(time/1000, filtered_signal(:, i));
+    xlabel('Time (s)', 'FontSize', 12);
+    ylabel('Voltage (mV)', 'FontSize', 12);
+    xlim([0 600]);
+    set(gca, 'FontSize', 10);
+end
+
+%% THRESHOLD - all electrodes
+sample_start = 1;
+sample_end = length(time);
+step = 1*fs; % velikost posuvneho okna (1 sec)
+threshold_pos = zeros(1,12);
+threshold_neg = zeros(1,12);
+
+for el = index_el_start:index_el_end
+    curr_signal = filtered_signal(:, el);
+    % posuvne okno for cyklus
+    for i = sample_start:step:sample_end
+        % vypocitani thresholdu (stredni hodnota sumu)
+        segment_start = i;
+        segment_end = min(i + step - 1, sample_end);
+        segment = curr_signal(segment_start:segment_end);
+        noise_estimate = mean(abs(segment));
+
+        %threshold 7xSTD
+        threshold_pos(el) = 7*noise_estimate;
+        threshold_neg(el) = -7*noise_estimate;
+    end
+end
+
+%% PLOT THRESHOLDU (ověření na jednotl. elektrodách)
+electrode = 1; % toto se muze menit
+threshold_line_pos = ones(size(time/1000))*threshold_pos(electrode);
+threshold_line_neg = ones(size(time/1000))*threshold_neg(electrode);
+figure();
+plot(time/1000,filtered_signal(:,electrode));
+hold on
+plot(time/1000, threshold_line_pos, 'r-', 'LineWidth', 1);
+plot(time/1000, threshold_line_neg, 'r-', 'LineWidth', 1);
+xlabel('Time (s)', 'FontSize', 12);
+ylabel('Voltage (mV)', 'FontSize', 12);
+xlim([0 600]);
+set(gca, 'FontSize', 10);
+
+%% SPIKE & BURST DETECTION
+electrode = 12; % toto se mění
+curr_electrode = filtered_signal(:,electrode);
+curr_threshold_pos = threshold_pos(:,electrode);
+curr_threshold_neg = threshold_neg(:,electrode);
+refractory_period = 1e-3; % 1 ms refractory period
+% nalezení píků
+[peaks_neg, locations_neg] = findpeaks(-curr_electrode, 'MinPeakHeight', -curr_threshold_neg, ...
+    'MinPeakDistance', round(refractory_period*fs));
+[peaks_pos, locations_pos] = findpeaks(curr_electrode, 'MinPeakHeight', curr_threshold_pos, ...
+    'MinPeakDistance', round(refractory_period*fs));
+
+% sloučení nalezených pik
+locs_all = sort([locations_neg; locations_pos]);
+
+% ověření, zda piky nejsou příliš blízko k sobě
+diff_locs = diff(locs_all);
+locs_to_remove = locs_all([diff_locs <= refractory_period*fs; false]);
+% odebrání příliš blízkých piků
+locs_all(ismember(locs_all, locs_to_remove)) = [];
+
+% Uložíme indexy nalezených piků
+spike_indices = locs_all;
+
+% Plot filtered signal and detected spikes
+figure;
+plot(time/1000, curr_electrode);
+hold on;
+plot(time/1000, ones(size(time/1000))*curr_threshold_neg, 'r-', 'LineWidth', 1);
+plot(time/1000, ones(size(time/1000))*curr_threshold_pos, 'r-', 'LineWidth', 1);
+plot(time(spike_indices)/1000, curr_electrode(spike_indices), 'ro');
+
+xlabel('Time (s)', 'FontSize', 15);
+ylabel('Voltage (mV)', 'FontSize', 15);
+set(gca,'FontSize',14);
+title('Filtered Signal with Detected Spikes', 'FontSize', 20);
+legend('Filtered Signal', 'Negative threshold', 'Positive threshold', ...
+    'Spikes', 'Location', 'southwest', FontSize=12);
+legend('boxoff');
+xlim([0 600]);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%
+% ULOŽENÍ %
+%spike_indices_all_el = cell(1, 12); % JEN POPRVÉ
+spike_indices_all_el{electrode} = spike_indices;
+%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% BURST DETECTION
+min_spikes_per_burst = 10;
+max_isi = 0.1; % 100ms
+max_isi_samples = max_isi * fs; % min počet vzorků v burstu
+min_burst_duration = 0.03; % 30ms
+
+spike_peaks = [peaks_pos; -peaks_neg];
+spike_locs = locs_all;
+
+isi = diff(spike_locs); %v samplech
+
+% Detekce burstů
+burst_start_locs = find([true; isi > max_isi_samples]); % indexy spiků, které začínají nový burst
+burst_end_locs = find([isi > max_isi_samples; true]); % indexy spiků, které končí burst
+
+% Vyfiltrovaní burstů, které splňují kritéria
+burst_spikes = [];
+valid_burst_start_locs = [];
+valid_burst_end_locs = [];
+for i = 1:length(burst_start_locs)
+    burst_spike_locs = spike_locs(spike_locs >= spike_locs(burst_start_locs(i)) & spike_locs <= spike_locs(burst_end_locs(i)));
+    burst_duration = (spike_locs(burst_end_locs(i)) - spike_locs(burst_start_locs(i)))/fs;
+    if length(burst_spike_locs) >= min_spikes_per_burst
+        if burst_duration >= min_burst_duration
+            burst_spikes = [burst_spikes; burst_spike_locs];
+            valid_burst_start_locs = [valid_burst_start_locs; spike_locs(burst_start_locs(i))];
+            valid_burst_end_locs = [valid_burst_end_locs; spike_locs(burst_end_locs(i))];
+        end
+    end
+end
+
+% burst plot
+figure;
+plot(time/1000, curr_electrode);
+hold on;
+plot(time(burst_spikes)/1000, curr_electrode(burst_spikes), '.', ...
+    'Color', [0.9290 0.6940 0.1250], 'MarkerSize', 8);
+plot(time(valid_burst_start_locs)/1000, curr_electrode(valid_burst_start_locs), '.', ...
+    'MarkerSize', 20, 'Color', [1 0 0]);
+plot(time(valid_burst_end_locs)/1000, curr_electrode(valid_burst_end_locs), '.', ...
+    'MarkerSize', 20, 'Color', [0 1 0]);
+xlabel('Time (s)', 'FontSize', 15);
+ylabel('Voltage (mV)', 'FontSize', 15);
+set(gca,'FontSize',14);
+title('Bursts detection', 'FontSize', 20);
+set(gca,'FontSize',14)
+legend('Filtered signal', 'Spikes in burst', 'Burst start', 'Burst end',...
+    'Location','southwest', FontSize=12);
+legend('boxoff');
+xlim([0 600]);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%
+% ULOŽENÍ
+%burst_start_all_el = cell(1,12); % JEN POPRVÉ!!!
+%burst_end_all_el = cell(1,12); % JEN POPRVÉ!!!
+burst_start_all_el{electrode} = valid_burst_start_locs;
+burst_end_all_el{electrode} = valid_burst_end_locs;
+%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% PARAMETRY %%
+
+%% MFR
+mfr = zeros(1, 12);
+std_mfr = zeros(1, 12);
+total_time = 600; % Délka pozorování v sekundách
+
+for electrode = 1:12
+    spike_times = spike_indices_all_el{electrode}; % Časy detekovaných spikeů pro aktuální elektrodu
+    spike_count = length(spike_times); % Počet spikeů pro aktuální elektrodu
+
+    mfr(electrode) = spike_count / total_time; % Mean firing rate (MFR) pro aktuální elektrodu
+end
+total_mfr = sum(mfr);
+
+%% ISI
+isi_all_el = zeros(1,12); % Připravíme cell array pro ISI pro každou elektrodu
+std_isi_all_el = zeros(1,12);
+for electrode = 1:12
+    spike_indices = spike_indices_all_el{electrode}; % Indexy spiků pro aktuální elektrodu
+    isi = diff(spike_indices); % Výpočet mezi-spike intervalů pro aktuální elektrodu
+    isi_all_el(electrode) = mean(isi); % Uložení ISI pro aktuální elektrodu do cell array
+end
+total_isi = mean(isi_all_el)/fs;
+
+%% MBR
+mbr = zeros(1, 12);
+std_mbr = zeros(1, 12);
+
+for electrode = 1:12
+    burst_times = burst_start_all_el{electrode}; % Časy detekovaných spikeů pro aktuální elektrodu
+    burst_count = length(burst_times); % Počet spikeů pro aktuální elektrodu
+
+    mbr(electrode) = burst_count / total_time; % Mean firing rate (MFR) pro aktuální elektrodu
+end
+total_mbr = sum(mbr); % bursty za sekundu (Hz)
+
+%% BD
+burst_duration_all_el = zeros(1, 12); % Připravíme pole pro BD pro každou elektrodu
+
+for electrode = 1:12
+    burst_starts = burst_start_all_el{electrode}; % Začátky burstů pro aktuální elektrodu
+    burst_ends = burst_end_all_el{electrode}; % Konce burstů pro aktuální elektrodu
+    for i = 1:size(burst_starts,1)
+        burst_durations(i,:) = burst_ends(i,:) - burst_starts(i,:);
+    end
+    burst_duration_all_el(electrode) = mean(burst_durations); % Uložení průměrného BD pro aktuální elektrodu do pole
+end
+total_mean_bd = mean(burst_duration_all_el)/fs; % Celkový průměrný BD pro všechny elektrody
+
+
+
